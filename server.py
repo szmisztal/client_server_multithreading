@@ -28,13 +28,17 @@ class Server():
                         client_handler = self.connection_pool.get_connection(client_socket, address)
                         client_handler.run()
                         if len(self.connection_pool.connections_in_use_list) >= 100:
-                            for handler in self.connection_pool.connections_in_use_list:
+                            connections_to_close = list(self.connection_pool.connections_in_use_list)
+                            for handler in connections_to_close:
                                 handler.stop_message()
                                 self.connection_pool.release_connection(handler)
+                                self.is_running = False
                     except Exception as e:
                         print(f"Error handling client {address}: {e}")
             except KeyboardInterrupt:
                 print("Server stopped by user.")
+            finally:
+                server_socket.close()
 
 
 if __name__ == "__main__":
