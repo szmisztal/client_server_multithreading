@@ -50,8 +50,8 @@ class ConnectionPool:
                 connection.in_use = False
                 connection.client_socket = None
                 connection.address = None
-                self.connections_in_use_list.remove(connection)
                 self.connections_list.append(connection)
+                self.connections_in_use_list.remove(connection)
         finally:
             self.lock.release()
 
