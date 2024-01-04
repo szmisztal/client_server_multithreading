@@ -1,4 +1,6 @@
 import socket as s
+import threading
+from _thread import *
 from variables import HOST, PORT, INTERNET_ADDRESS_FAMILY, SOCKET_TYPE, BUFFER, encode_format
 from data_utils import DataUtils
 
@@ -13,6 +15,26 @@ class Server():
         self.data_utils = DataUtils()
         self.encode_format = encode_format
         self.is_running = True
+        self.lock = threading.Lock()
+        self.clients_list = []
+
+    def client_thread(self, client):
+        message = {"OK": len(self.clients_list)}
+        message_json = self.data_utils.serialize_to_json(message)
+        client.sendall(message_json)
+        self.lock.release()
+
+    def send_ping_message_and_shut_down_server(self):
+        message = "PING"
+        message_json = self.data_utils.serialize_to_json(message)
+        for client_socket in self.clients_list:
+            self.lock.acquire()
+            client_socket.sendall(message_json)
+            response_json = client_socket.recv(BUFFER)
+            response = self.data_utils.deserialize_json(response_json)
+            print(response)
+            client_socket.close()
+            self.lock.release()
 
     def start(self):
         with s.socket(self.INTERNET_ADDRESS_FAMILY, self.SOCKET_TYPE) as server_socket:
@@ -23,15 +45,12 @@ class Server():
                 while self.is_running:
                     client_socket, address = server_socket.accept()
                     try:
-                        pass
-                        # client_handler = self.connection_pool.get_connection(client_socket, address)
-                        # client_handler.run()
-                        # if len(self.connection_pool.connections_in_use_list) >= 100:
-                        #     connections_to_close = list(self.connection_pool.connections_in_use_list)
-                        #     for handler in connections_to_close:
-                        #         handler.stop_message()
-                        #         self.connection_pool.release_connection(handler)
-                        #         self.is_running = False
+                        self.lock.acquire()
+                        self.clients_list.append(client_socket)
+                        start_new_thread(self.client_thread, (client_socket,))
+                        if len(self.clients_list) >= 5:
+                            self.send_ping_message_and_shut_down_server()
+                            self.is_running = False
                     except Exception as e:
                         print(f"Error handling client {address}: {e}")
             except KeyboardInterrupt:
