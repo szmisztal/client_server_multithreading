@@ -22,7 +22,6 @@ class Server():
         message = {"OK": len(self.clients_list)}
         message_json = self.data_utils.serialize_to_json(message)
         client.sendall(message_json)
-        self.lock.release()
 
     def send_ping_message_and_shut_down_server(self):
         message = "PING"
@@ -48,7 +47,8 @@ class Server():
                         self.lock.acquire()
                         self.clients_list.append(client_socket)
                         start_new_thread(self.client_thread, (client_socket,))
-                        if len(self.clients_list) >= 5:
+                        self.lock.release()
+                        if len(self.clients_list) >= 100:
                             self.send_ping_message_and_shut_down_server()
                             self.is_running = False
                     except Exception as e:
