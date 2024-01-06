@@ -65,10 +65,11 @@ class Server():
                             self.is_running = False
                     except Exception as e:
                         print(f"Error: {e}")
+                        self.is_running = False
             except KeyboardInterrupt:
                 print("Server stopped by user.")
             finally:
-                print("Server`s down...")
+                print("SERVER`S DOWN...")
                 server_socket.close()
 
 
